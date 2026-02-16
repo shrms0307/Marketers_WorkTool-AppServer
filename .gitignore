@@ -1,0 +1,29 @@
+# User requested exclusions
+backup_favorites/
+blog_type_desc_data/
+.ipynb_checkpoints/
+chrome-linux64/
+chromedriver-linux64/
+pages/
+NanumGothicFonts/
+.streamlit/
+Development_history.ipynb
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+key.py
+*.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db

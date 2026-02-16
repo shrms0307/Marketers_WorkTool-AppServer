@@ -1,20 +1,40 @@
 ## 수동으로 수집한 키워드가 담긴 txt파일을 입력 받아 db에 업로드합니다.
 # 동일한 키워드가 존재하는지 확인하여 일치하는 키워드 존재 시 참 해당 릴레이션의 participation 만 업데이트
-### 언젠가 쓸 일이 있을 수도
 
+
+import os
 import pymysql
 from sshtunnel import open_tunnel
 
-# 접근 키 가져오기
-import key
+try:
+    import key  # type: ignore
+except ImportError:
+    key = None
 
-db_id = key.db_id
-db_passwd = key.db_passwd
-ssh_user= key.ssh_user
-ssh_passwd = key.ssh_passwd
-nas_id = key.nas_id
-nas_passwd = key.nas_passwd
-FTP_server = key.FTP_server
+
+def _get_setting(env_name, *, key_attr=None, default=None, required=True):
+    """환경 변수 우선, 없으면 key.py, 없으면 기본값/에러."""
+    value = os.getenv(env_name)
+    if value:
+        return value
+    if key_attr and key and hasattr(key, key_attr):
+        return getattr(key, key_attr)
+    if default is not None:
+        return default
+    if required:
+        raise RuntimeError(f"Missing required setting: {env_name} (or key.{key_attr or env_name.lower()})")
+    return None
+
+
+SSH_HOST = _get_setting("SSH_HOST", key_attr="ssh_host")
+SSH_PORT = int(_get_setting("SSH_PORT", key_attr="ssh_port", default="22"))
+SSH_USER = _get_setting("SSH_USER", key_attr="ssh_user")
+SSH_PASSWORD = _get_setting("SSH_PASSWORD", key_attr="ssh_passwd")
+DB_HOST = _get_setting("DB_HOST", key_attr="db_host", default="127.0.0.1")
+DB_PORT = int(_get_setting("DB_PORT", key_attr="db_port", default="3306"))
+DB_NAME = _get_setting("DB_NAME", key_attr="db_name", default="smart_service_influencer")
+DB_USER = _get_setting("DB_USER", key_attr="db_id")
+DB_PASSWORD = _get_setting("DB_PASSWORD", key_attr="db_passwd")
 
 
 
@@ -76,10 +96,10 @@ def get_connection():
     """데이터베이스 연결을 반환하는 함수"""
     try:
         server = open_tunnel(
-            ('45.115.155.45', 22),
-            ssh_username=ssh_user,
-            ssh_password=ssh_passwd,
-            remote_bind_address=('127.0.0.1', 3306)
+            (SSH_HOST, SSH_PORT),
+            ssh_username=SSH_USER,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(DB_HOST, DB_PORT)
         )
         server.start()
 
@@ -87,9 +107,9 @@ def get_connection():
         connection = pymysql.connect(
             host="127.0.0.1",
             port=server.local_bind_port,
-            user=db_id,
-            passwd=db_passwd ,
-            db="smart_service_influencer",
+            user=DB_USER,
+            passwd=DB_PASSWORD ,
+            db=DB_NAME,
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )
